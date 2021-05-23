@@ -68,7 +68,7 @@ class RBM:
         
         
         
-    def train_Gibbs_Sampling(self, input_data, k, r, eta):
+    def train_Gibbs_Sampling(self, input_data, k, r, eta = 1e-4):
         '''
         Performs one epoch of training using Block Gibbs Sampling. 
         Weights are updated after processing each training sample.

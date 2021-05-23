@@ -52,6 +52,7 @@ class SimpleLogisticClassifier:
         '''
         num_samples = input_data.shape[0]
         loss_history = []
+        
         for epoch_count in range(max_epochs):
             y_temp = np.exp(input_data @ self.W + self.b)
             y_probab = (1/np.sum(y_temp, axis = 1).reshape(-1, 1))*y_temp
@@ -71,6 +72,5 @@ class SimpleLogisticClassifier:
             self.W = self.W - eta*grad_W
             self.b = self.b - eta*grad_b
         
-        print(loss_history)
         return
     
