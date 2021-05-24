@@ -229,4 +229,4 @@ class RBM:
         if train_type=="CD":
             self.train_contrastive_divergence(input_data, eta)
         if train_type=="BGS":
-            self.train_Gibbs_Sampling(input_data, self.epochs, r, eta)
+            self.train_Gibbs_Sampling(input_data, k, r, eta)

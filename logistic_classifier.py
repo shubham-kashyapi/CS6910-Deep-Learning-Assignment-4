@@ -22,7 +22,7 @@ class LogisticClassifier:
             self.b_list.append(np.random.normal(size=(1,1)))
 
     def get_loss(self, y_temp, y_hat):
-        E = 0.5*np.linalg.norm(y_temp - y_hat)
+        E = (0.5/y_temp.shape[0])*np.linalg.norm(y_temp - y_hat)
         return E
 
     def get_grads(self, y_temp, y_hat):
@@ -81,9 +81,10 @@ class LogisticClassifier:
 
         y_pred = np.argmax(self.probabs, axis=1)
         acc = np.sum(y_pred==y)/y.size
-        return y_pred, acc
+        loss = self.get_loss(y_temp, y_hat)
+        return y_pred, acc, loss
     
-    def fit(self, X, y, epochs=100, eta=1e-1, patience=5):
+    def fit(self, X, y, epochs=100, eta=0.1, patience=5):
         '''
         Learns the weights using simple full-batch gradient descent
         
