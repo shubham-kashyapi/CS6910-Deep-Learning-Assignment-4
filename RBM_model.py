@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 class RBM:
     def __init__(self, num_visible, num_hidden):
@@ -24,7 +25,7 @@ class RBM:
         Checks the format of visible variables
         
         Parameters:
-        input_data - 2d numpy array (dtype = float, size = (num_samples, num_visible))
+        input_data - 2d numpy array (dtype=float, size = (num_samples, num_visible))
         Should contain only 0's and 1's
         
         Returns:
@@ -43,11 +44,11 @@ class RBM:
         Given the visible variables, computes the hidden representation using sampling.
         
         Parameters:
-        input_data - 2d numpy array (dtype = float, size = (num_samples, num_visible))
+        input_data - 2d numpy array (dtype=float, size=(num_samples, num_visible))
         Should contain only 0's and 1's
         
         Returns:
-        hidden_rep - 2d numpy array (dtype = float, size = (num_samples, num_hidden))
+        hidden_rep - 2d numpy array (dtype=float, size=(num_samples, num_hidden))
         Contains only 0's and 1's
         '''
         ###################################
@@ -62,19 +63,17 @@ class RBM:
         num_samples = input_data.shape[0]
         hidden_probabs = (1/(1+np.exp(self.W @ input_data.T + self.c))).T
         # print(hidden_probabs)
-        random_vals = np.random.uniform(low = 0.0, high = 1.0, size = (num_samples, self.num_hidden))
+        random_vals = np.random.uniform(low=0.0, high=1.0, size=(num_samples, self.num_hidden))
         hidden_rep = (random_vals > hidden_probabs).astype(float)
         return hidden_rep        
         
-        
-        
-    def train_Gibbs_Sampling(self, input_data, k, r, eta = 1e-4):
+    def train_Gibbs_Sampling(self, input_data, k, r, eta=1e-4):
         '''
         Performs one epoch of training using Block Gibbs Sampling. 
         Weights are updated after processing each training sample.
         
         Parameters:
-        data - 2d numpy array (dtype = float, size = (num_samples, num_visible))
+        data - 2d numpy array (dtype = float, size=(num_samples, num_visible))
         Should contain only 0's and 1's
         k - Number of steps to be run for convergence (int)
         r - Number of samples to be drawn after convergence (int)
@@ -121,9 +120,113 @@ class RBM:
             self.W += eta*((curr_sigmoid @ curr_visible.T) - (1.0/r)*W_update_sum)
             self.b += eta*(curr_visible.T - (1.0/r)*b_update_sum)
             self.c += eta*(curr_sigmoid - (1.0/r)*c_update_sum)
-            
-        return
+        
+    def sigmoid(self, x):
+        val = 1/(1+np.exp(-x))
+        return val
+
+    def sample_h(self, v):
+        # print(self.W.shape, v.shape, self.c.shape)
+        val = self.sigmoid((self.W @ v).reshape(-1,1) + self.c)
+        flag = np.random.uniform(size=val.size).reshape(-1,1)
+        # print(val.shape, flag.shape)
+        return (flag < val).astype("float")
+
+    def sample_v(self, h):
+        # print(self.W.T.shape, h.shape, self.b.shape)
+        val = self.sigmoid((self.W.T @ h).reshape(-1,1) + self.b)
+        flag = np.random.uniform(size=val.size).reshape(-1,1)
+        # print(val.shape, flag.shape)
+        return (flag < val).astype("float")
+
+
+    def kstep_cd(self, v):
+        for _ in range(self.k):
+            h = self.sample_h(v)
+            # print("h.shape:", h.shape)
+            v = self.sample_v(h)
+        return v
+
+    def get_grads(self, curr, recons):
+        # print("curr:", curr.shape, "recons:", recons.shape, "W:", self.W.shape, "c:", self.c.shape)
+        term1 = (self.sigmoid((self.W@curr).reshape(-1,1) + self.c))@ curr.T
+        term2 = (self.sigmoid((self.W@recons).reshape(-1,1) + self.c))@ curr.T
+        del_W = term1 - term2
+        # print("del_W:", del_W.shape)
+
+        del_b = curr - recons
+        # print("b:", self.b.shape)
+        # print("del_b:", del_b.shape)
+        term1 = self.sigmoid((self.W@curr).reshape(-1,1) + self.c)
+        term2 = self.sigmoid((self.W@recons).reshape(-1,1) + self.c)
+        # print(self.c.shape)
+        # print(term1.shape, term2.shape)
+        del_c = term1 - term2
+
+        # print("del_b shape:", del_b.shape)
+        # print("del_c shape:", del_c.shape)
+        return del_W, del_b, del_c
+
+    def get_loss(self, curr):
+        h = self.sample_h(curr)
+        v = self.sample_v(h)
+        loss = np.sqrt(np.mean((v-curr)**2))
+        return loss
     
+    def train_contrastive_divergence(self, input_data, eta):
+        '''
+        Performs one epoch of training using Contrastive Divergence. 
+        Weights are updated after processing each training sample.
+        
+        Parameters:
+        data - 2d numpy array (dtype = float, size = (num_samples, num_visible))
+        Should contain only 0's and 1's
+        k - Number of steps to be run for convergence (int)
+        r - Number of samples to be drawn after convergence (int)
+        eta - Learning rate (float)
+        
+        Returns:
+        None
+        '''
+        ###################################
+        # Checking the format of the data
+        ###################################
+        input_data = input_data.astype(float)
+        self.check_data_format(input_data)
+        self.b = self.b.reshape(-1,1)
+        
+        self.overall_loss = []
+        for _ in tqdm(range(self.epochs)):
+            loss_list = []
+            for row in range(input_data.shape[0]):
+                v0 = input_data[row, :].copy()
+                v = input_data[row, :].copy()
+                # print("v.shape:", v.shape)
+                # print("hidden_layer size:", self.num_hidden)
+                
+                recons = self.kstep_cd(v)
+
+                # Updating the weights
+                curr = input_data[row, :].reshape(-1, 1) 
+                del_W, del_b, del_c = self.get_grads(curr, recons)
+
+                self.W += eta*del_W
+                self.b += eta*del_b
+                self.c += eta*del_c
+
+                loss = self.get_loss(curr)
+                loss_list.append(loss)
+
+            self.overall_loss.append(np.mean(loss_list))
+
     
-    def train_Contrastive_Divergence(self, input_data):
-        pass                     
+    def train(self, train_type, input_data, k=None, epochs=None, r=None, eta=None):
+        self.k = k
+        self.r = r
+        self.eta = eta
+        self.epochs = epochs
+
+        if train_type=="CD":
+            self.train_contrastive_divergence(input_data, eta)
+        if train_type=="BGS":
+            self.train_Gibbs_Sampling(input_data, self.epochs, r, eta)
