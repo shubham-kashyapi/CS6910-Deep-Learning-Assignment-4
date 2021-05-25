@@ -17,7 +17,7 @@ The member functions of the class are as follows:
 |:--------------|:------------|
 | `check_data_format` | Checks the format and dimensions of the data. |
 | `get_hidden_rep` | Given the visible variables, computes the hidden representation using sampling. |
-| 'get_visible_rep' | Given the hidden variables, computes the visible representation using sampling. |
+| `get_visible_rep` | Given the hidden variables, computes the visible representation using sampling. |
 | `train_Gibbs_Sampling` | Function that performs one epoch of training using Block Gibbs Sampling. Weights are updated after processing each training sample. |
 | `sigmoid` | Given an input array, calculates the sigmoid of the same. |
 | `sample_h_vec` | Calculates the hidden variables (vector) from the visible variables (vector). |
