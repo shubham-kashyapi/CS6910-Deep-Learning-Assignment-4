@@ -84,9 +84,13 @@ wandb.agent(sweep_id, function = RBM_wandb_logs)
 
 The function `RBM_wandb_logs` has been declared inside the respective notebooks.
 
-## 4. tSNE plot
+## 4. Sample image plots (Q6)
+The 8 x * grid of images is given below.
+![](images/Visualized_samples_Gibbs_chain.png)
+
+## 5. tSNE plot (Q7)
 The tSNE plot was obtained using the `sklearn.manifold.TSNE` module. The plot obtained is as follows:
 ![](images/tsne.png)
 
-## 5. Report
+## 6. Report
 The wandb report can be accessed [here](https://wandb.ai/cs6910-team/assignment-4/reports/CS6910-Assignment-4--Vmlldzo3MTYyMzU).
