@@ -125,26 +125,40 @@ class RBM:
         val = 1/(1+np.exp(-x))
         return val
 
-    def sample_h(self, v):
+    def sample_h_vec(self, v):
         # print(self.W.shape, v.shape, self.c.shape)
         val = self.sigmoid((self.W @ v).reshape(-1,1) + self.c)
         flag = np.random.uniform(size=val.size).reshape(-1,1)
         # print(val.shape, flag.shape)
         return (flag < val).astype("float")
 
-    def sample_v(self, h):
+    def sample_v_vec(self, h):
         # print(self.W.T.shape, h.shape, self.b.shape)
         val = self.sigmoid((self.W.T @ h).reshape(-1,1) + self.b)
         flag = np.random.uniform(size=val.size).reshape(-1,1)
         # print(val.shape, flag.shape)
         return (flag < val).astype("float")
 
+    def sample_h(self, W, c, v):
+        # print(W.shape, v.shape, self.c.shape)
+        val = self.sigmoid((W @ v) + c)
+        flag = np.random.uniform(size=val.shape)
+        # print(val.shape, flag.shape)
+        return (flag < val).astype("float")
+
+    def sample_v(self, W, b, h):
+        # print(W.T.shape, h.shape, b.shape)
+        val = self.sigmoid((W.T @ h) + b)
+        flag = np.random.uniform(size=val.shape)
+        # print(val.shape, flag.shape)
+        return (flag < val).astype("float")
+
 
     def kstep_cd(self, v):
         for _ in range(self.k):
-            h = self.sample_h(v)
+            h = self.sample_h_vec(v)
             # print("h.shape:", h.shape)
-            v = self.sample_v(h)
+            v = self.sample_v_vec(h)
         return v
 
     def get_grads(self, curr, recons):
@@ -168,8 +182,8 @@ class RBM:
         return del_W, del_b, del_c
 
     def get_loss(self, curr):
-        h = self.sample_h(curr)
-        v = self.sample_v(h)
+        h = self.sample_h_vec(curr)
+        v = self.sample_v_vec(h)
         loss = np.sqrt(np.mean((v-curr)**2))
         return loss
     
@@ -195,9 +209,13 @@ class RBM:
         self.check_data_format(input_data)
         self.b = self.b.reshape(-1,1)
         
+        self.param_SGD = {"W":[], "b":[], "c":[]}
+        self.param_hist = {"W":[], "b":[], "c":[]}
         self.overall_loss = []
-        for _ in tqdm(range(self.epochs)):
+        for epoch in tqdm(range(self.epochs)):
             loss_list = []
+
+            # SGD
             for row in range(input_data.shape[0]):
                 v0 = input_data[row, :].copy()
                 v = input_data[row, :].copy()
@@ -217,7 +235,16 @@ class RBM:
                 loss = self.get_loss(curr)
                 loss_list.append(loss)
 
+                if epoch == self.epochs-1:
+                    self.param_SGD["W"].append(self.W.copy())
+                    self.param_SGD["b"].append(self.b.copy())
+                    self.param_SGD["c"].append(self.c.copy())
+
+
             self.overall_loss.append(np.mean(loss_list))
+            self.param_hist["W"].append(self.W.copy())
+            self.param_hist["b"].append(self.b.copy())
+            self.param_hist["c"].append(self.c.copy())
 
     
     def train(self, train_type, input_data, k=None, epochs=None, r=None, eta=None):
