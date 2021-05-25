@@ -56,16 +56,50 @@ class RBM:
         ###################################
         input_data = input_data.astype(float)
         self.check_data_format(input_data)
+        self.W = self.W.reshape(self.num_hidden, self.num_visible)
+        self.b = self.b.reshape(1, self.num_visible)
+        self.c = self.c.reshape(self.num_hidden, 1)
         
         ###################################
         # Sampling the hidden variables
         ###################################
         num_samples = input_data.shape[0]
-        hidden_probabs = (1/(1+np.exp(self.W @ input_data.T + self.c))).T
-        # print(hidden_probabs)
+        hidden_probabs = (1/(1+np.exp(self.W @ input_data.T + self.c))).T  # P(hidden var = 0 | visible vars)
         random_vals = np.random.uniform(low=0.0, high=1.0, size=(num_samples, self.num_hidden))
         hidden_rep = (random_vals > hidden_probabs).astype(float)
-        return hidden_rep        
+        return hidden_rep      
+    
+    def get_visible_rep(self, hidden_data):
+        '''
+        Given the hidden variables, computes the visible representation using sampling.
+        
+        Parameters:
+        hidden_data - 2d numpy array (dtype=float, size=(num_samples, num_hidden))
+        Should contain only 0's and 1's
+        
+        Returns:
+        visible_rep - 2d numpy array (dtype=float, size=(num_samples, num_visible))
+        Contains only 0's and 1's
+        '''
+        ###################################
+        # Checking the format of the data
+        ###################################
+        hidden_data = hidden_data.astype(float)
+        if hidden_data.shape[1] != self.num_hidden:
+            raise ValueError("The input array should have {} columns".format(self.num_hidden))
+        self.W = self.W.reshape(self.num_hidden, self.num_visible)
+        self.b = self.b.reshape(1, self.num_visible)
+        self.c = self.c.reshape(self.num_hidden, 1)
+        
+        ###################################
+        # Sampling the hidden variables
+        ###################################
+        num_samples = hidden_data.shape[0]        
+        visible_probabs = 1/(1 + np.exp(hidden_data @ self.W + self.b)) # P(visible var = 0 | hidden vars)
+        random_vals = np.random.uniform(low = 0.0, high = 1.0, size = (num_samples, self.num_visible))
+        visible_rep = (random_vals > visible_probabs).astype(float)
+        return visible_rep      
+        
         
     def train_Gibbs_Sampling(self, input_data, k, r, eta=1e-4):
         '''
@@ -125,40 +159,26 @@ class RBM:
         val = 1/(1+np.exp(-x))
         return val
 
-    def sample_h_vec(self, v):
+    def sample_h(self, v):
         # print(self.W.shape, v.shape, self.c.shape)
         val = self.sigmoid((self.W @ v).reshape(-1,1) + self.c)
         flag = np.random.uniform(size=val.size).reshape(-1,1)
         # print(val.shape, flag.shape)
         return (flag < val).astype("float")
 
-    def sample_v_vec(self, h):
+    def sample_v(self, h):
         # print(self.W.T.shape, h.shape, self.b.shape)
         val = self.sigmoid((self.W.T @ h).reshape(-1,1) + self.b)
         flag = np.random.uniform(size=val.size).reshape(-1,1)
         # print(val.shape, flag.shape)
         return (flag < val).astype("float")
 
-    def sample_h(self, W, c, v):
-        # print(W.shape, v.shape, self.c.shape)
-        val = self.sigmoid((W @ v) + c)
-        flag = np.random.uniform(size=val.shape)
-        # print(val.shape, flag.shape)
-        return (flag < val).astype("float")
-
-    def sample_v(self, W, b, h):
-        # print(W.T.shape, h.shape, b.shape)
-        val = self.sigmoid((W.T @ h) + b)
-        flag = np.random.uniform(size=val.shape)
-        # print(val.shape, flag.shape)
-        return (flag < val).astype("float")
-
 
     def kstep_cd(self, v):
         for _ in range(self.k):
-            h = self.sample_h_vec(v)
+            h = self.sample_h(v)
             # print("h.shape:", h.shape)
-            v = self.sample_v_vec(h)
+            v = self.sample_v(h)
         return v
 
     def get_grads(self, curr, recons):
@@ -182,8 +202,8 @@ class RBM:
         return del_W, del_b, del_c
 
     def get_loss(self, curr):
-        h = self.sample_h_vec(curr)
-        v = self.sample_v_vec(h)
+        h = self.sample_h(curr)
+        v = self.sample_v(h)
         loss = np.sqrt(np.mean((v-curr)**2))
         return loss
     
@@ -209,13 +229,9 @@ class RBM:
         self.check_data_format(input_data)
         self.b = self.b.reshape(-1,1)
         
-        self.param_SGD = {"W":[], "b":[], "c":[]}
-        self.param_hist = {"W":[], "b":[], "c":[]}
         self.overall_loss = []
-        for epoch in tqdm(range(self.epochs)):
+        for _ in tqdm(range(self.epochs)):
             loss_list = []
-
-            # SGD
             for row in range(input_data.shape[0]):
                 v0 = input_data[row, :].copy()
                 v = input_data[row, :].copy()
@@ -235,16 +251,7 @@ class RBM:
                 loss = self.get_loss(curr)
                 loss_list.append(loss)
 
-                if epoch == self.epochs-1:
-                    self.param_SGD["W"].append(self.W.copy())
-                    self.param_SGD["b"].append(self.b.copy())
-                    self.param_SGD["c"].append(self.c.copy())
-
-
             self.overall_loss.append(np.mean(loss_list))
-            self.param_hist["W"].append(self.W.copy())
-            self.param_hist["b"].append(self.b.copy())
-            self.param_hist["c"].append(self.c.copy())
 
     
     def train(self, train_type, input_data, k=None, epochs=None, r=None, eta=None):
