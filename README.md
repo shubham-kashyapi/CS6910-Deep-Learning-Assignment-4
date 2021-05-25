@@ -85,7 +85,7 @@ wandb.agent(sweep_id, function = RBM_wandb_logs)
 The function `RBM_wandb_logs` has been declared inside the respective notebooks.
 
 ## 4. Sample image plots (Q6)
-The 8 x * grid of images is given below.
+The 8 x 8 grid of images is given below.
 ![](images/Visualized_samples_Gibbs_chain.png)
 
 ## 5. tSNE plot (Q7)
