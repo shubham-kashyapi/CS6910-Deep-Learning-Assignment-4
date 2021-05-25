@@ -37,7 +37,7 @@ class RBM:
             raise ValueError("The input array should have {} columns".format(self.num_visible))
         if not(((input_data == 0.0) | (input_data == 1.0)).all()):
             raise ValueError("The input array should contain only 0's and 1's")
-        return
+        return    
     
     def get_hidden_rep(self, input_data):
         '''
@@ -65,7 +65,39 @@ class RBM:
         # print(hidden_probabs)
         random_vals = np.random.uniform(low=0.0, high=1.0, size=(num_samples, self.num_hidden))
         hidden_rep = (random_vals > hidden_probabs).astype(float)
-        return hidden_rep        
+        return hidden_rep
+    
+    def get_visible_rep(self, hidden_data):
+        '''
+        Given the hidden variables, computes the visible representation using sampling.
+        
+        Parameters:
+        hidden_data - 2d numpy array (dtype=float, size=(num_samples, num_hidden))
+        Should contain only 0's and 1's
+        
+        Returns:
+        visible_rep - 2d numpy array (dtype=float, size=(num_samples, num_visible))
+        Contains only 0's and 1's
+        '''
+        ###################################
+        # Checking the format of the data
+        ###################################
+        hidden_data = hidden_data.astype(float)
+        if hidden_data.shape[1] != self.num_hidden:
+            raise ValueError("The input array should have {} columns".format(self.num_hidden))
+        self.W = self.W.reshape(self.num_hidden, self.num_visible)
+        self.b = self.b.reshape(1, self.num_visible)
+        self.c = self.c.reshape(self.num_hidden, 1)
+        
+        ###################################
+        # Sampling the hidden variables
+        ###################################
+        num_samples = hidden_data.shape[0]        
+        visible_probabs = 1/(1 + np.exp(hidden_data @ self.W + self.b)) # P(visible var = 0 | hidden vars)
+        random_vals = np.random.uniform(low = 0.0, high = 1.0, size = (num_samples, self.num_visible))
+        visible_rep = (random_vals > visible_probabs).astype(float)
+        return visible_rep
+    
         
     def train_Gibbs_Sampling(self, input_data, k, r, eta=1e-4):
         '''
