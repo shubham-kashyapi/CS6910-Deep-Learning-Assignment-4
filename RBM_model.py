@@ -153,7 +153,6 @@ class RBM:
         # print(val.shape, flag.shape)
         return (flag < val).astype("float")
 
-
     def kstep_cd(self, v):
         for _ in range(self.k):
             h = self.sample_h_vec(v)
@@ -246,7 +245,6 @@ class RBM:
             self.param_hist["b"].append(self.b.copy())
             self.param_hist["c"].append(self.c.copy())
 
-    
     def train(self, train_type, input_data, k=None, epochs=None, r=None, eta=None):
         self.k = k
         self.r = r
