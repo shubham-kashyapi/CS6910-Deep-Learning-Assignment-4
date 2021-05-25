@@ -140,3 +140,4 @@ extra/
 
 # Remove extra folders
 extra/
+wandb/
