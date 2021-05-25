@@ -32,7 +32,7 @@ The member functions of the class are as follows:
 
 ## 2. Training (without wandb)
 The model can be trained using the `train()` method.  
-A code sample illustrating the same is as follows:
+Code samples illustrating the same for CD and BGS are given below:
 
 ```python
 epochs = 10
@@ -45,6 +45,21 @@ train_type = "CD"
 model = RBM(num_visible=num_visible_vars, num_hidden=num_hidden_vars)
 model.train(input_data=X_train, train_type=train_type, epochs=epochs, \
             k=num_steps_converge, eta=CD_etas)
+```
+
+```python
+epochs = 10
+num_visible_vars = 784
+num_hidden_vars = 256
+k = 200
+r = 30
+eta = 1e-4
+train_type = "BGS"
+
+model = RBM(num_visible=num_visible_vars, num_hidden=num_hidden_vars)
+for epoch_num in range(epochs):
+            model.train(input_data=X_train, train_type=train_type, \
+                        k = k, r = r, eta = eta)
 ```
 
 The `train_type` can be specified as:
